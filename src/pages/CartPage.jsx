@@ -1,8 +1,6 @@
 import Header from "../components/Header";
 import Container from "@mui/material/Container";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import { Typography } from "@mui/material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -10,141 +8,101 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
+import Button from "@mui/material/Button";
 import { Link } from "react-router";
-import { getCart, deleteItemFromCart } from "../utils/cart";
 import { useState, useEffect } from "react";
+import { getCart, updateCart } from "../utils/cart";
 
 const CartPage = () => {
-  const [cartItems, setCartItems] = useState([]); // start with empty card
+  // load the cart items from the local storage
+  const [cart, setCart] = useState(getCart());
 
-  useEffect(() => {
-    setCartItems(getCart());
-  }, []);
-
-  const handleRemove = (id) => {
-    deleteItemFromCart(id);
-    setCartItems(getCart()); // update state
+  const getCartTotal = () => {
+    let total = 0;
+    cart.forEach((product) => {
+      total += product.quantity * product.price;
+    });
+    return total;
   };
 
-  const grandTotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const removeItemFromCart = (product) => {
+    // 1. remove product from cart
+    const updatedCart = cart.filter((item) => item._id !== product._id);
+    // 2. update the cart data in local storage and the state
+    updateCart(updatedCart);
+    // 3. update the state
+    setCart(updatedCart);
+  };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      {/* Title */}
-      <Box
-        sx={{
-          py: 4,
-          textAlign: "center",
-          borderBottom: "1px solid #ddd",
-          mb: 3,
-        }}
-      >
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: "700",
-          }}
-        >
-          Cart
-        </Typography>
-        <Box sx={{ mt: 2 }}>
-          <Button
-            variant="contained"
-            color="info"
-            sx={{ mr: 1 }}
-            component={Link}
-            to="/"
-          >
-            Home
-          </Button>
-          <Button variant="contained" color="primary">
-            Cart
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Cart Table */}
-      {cartItems.length === 0 ? (
-        <Typography variant="h5" align="center" sx={{ my: 3 }}>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Price</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Total</TableCell>
-                  <TableCell>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <Typography>Tak ada bang</Typography>
-                <TableCell colSpan={3} align="right">
-                  <Typography variant="h6" fontWeight="bold">
-                    Total:
-                  </Typography>
-                </TableCell>
-                <TableCell colSpan={2}>
-                  <Typography variant="h6" fontWeight="bold">
-                    ${grandTotal.toFixed(2)}
-                  </Typography>
-                </TableCell>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Typography>
-      ) : (
-        <TableContainer>
-          <Table>
+    <>
+      <Header current="cart" title="Cart" />
+      <Container maxWidth="lg" sx={{ textAlign: "center" }}>
+        <TableContainer component={Paper}>
+          <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>
               <TableRow>
                 <TableCell>Product</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Action</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="right">Quantity</TableCell>
+                <TableCell align="right">Total</TableCell>
+                <TableCell align="right">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {cartItems.map((item) => (
-                <TableRow key={item._id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>${item.price.toFixed(2)}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => handleRemove(item._id)}
-                    >
-                      Remove
-                    </Button>
+              {cart.length > 0 ? (
+                cart.map((product) => (
+                  <TableRow
+                    key={product._id}
+                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                  >
+                    <TableCell component="th" scope="row">
+                      {product.name}
+                    </TableCell>
+                    <TableCell align="right">{product.price}</TableCell>
+                    <TableCell align="right">{product.quantity}</TableCell>
+                    <TableCell align="right">
+                      ${(product.price * product.quantity).toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => {
+                          removeItemFromCart(product);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    No product has been added to cart yet
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
               <TableRow>
-                <TableCell colSpan={4} align="right">
-                  <Typography variant="h6" fontWeight="bold">
-                    ${grandTotal.toFixed(2)}
-                  </Typography>
-                </TableCell>
+                <TableCell colSpan={3}></TableCell>
+                <TableCell align="right">${getCartTotal()}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-            <Button variant="contained" color="primary" size="large">
-              Checkout
-            </Button>
-          </Box>
         </TableContainer>
-      )}
-    </Container>
+        <Box sx={{ pt: 3, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            color="primary"
+            component={Link}
+            to="/checkout"
+          >
+            Checkout
+          </Button>
+        </Box>
+      </Container>
+    </>
   );
 };
 

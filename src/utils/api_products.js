@@ -1,7 +1,7 @@
 import { Category } from "@mui/icons-material";
 import axios from "axios";
 
-const API_URL = "http://localhost:5124/";
+const API_URL = "http://localhost:5123/";
 
 export async function getProducts(category, page = 1) {
   const response = await axios.get(
