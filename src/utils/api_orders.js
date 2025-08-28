@@ -6,6 +6,7 @@ export const getOrders = async () => {
   const response = await axios.get(API_URL + "orders");
   return response.data;
 };
+
 export const createOrder = async (
   customerName,
   customerEmail,
@@ -22,15 +23,14 @@ export const createOrder = async (
   return response.data;
 };
 
-export const updateOrder = async (_id, status) => {
-  const response = await axios.put(API_URL + "orders/" + _id, {
-    _id: _id,
-    status: status,
+export const updateOrder = async (id, status) => {
+  const response = await axios.put(API_URL + "orders/" + id, {
+    status,
   });
   return response.data;
 };
 
-export async function deleteOrder(_id) {
-  const response = await axios.delete(API_URL + "orders/" + _id);
+export const deleteOrder = async (id) => {
+  const response = await axios.delete(API_URL + "orders/" + id);
   return response.data;
-}
+};

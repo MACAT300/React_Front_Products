@@ -32,6 +32,7 @@ const Header = (props) => {
         >
           Home
         </Button>
+
         <Button
           component={Link}
           to="/cart"
@@ -39,12 +40,21 @@ const Header = (props) => {
         >
           Cart
         </Button>
+
         <Button
           component={Link}
           to="/orders"
           variant={current === "orders" ? "contained" : "outlined"}
         >
           My Orders
+        </Button>
+
+        <Button
+          component={Link}
+          to="/categories"
+          variant={current === "categories" ? "contained" : "outlined"}
+        >
+          Categories
         </Button>
       </Box>
     </Box>

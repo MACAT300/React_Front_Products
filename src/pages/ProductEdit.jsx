@@ -9,9 +9,26 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { useState, useEffect } from "react";
-import { getProduct, updateProduct } from "../utils/api_products";
+import { updateProduct, getProduct } from "../utils/api_products";
 import { toast } from "sonner";
 import { useNavigate, useParams, Link } from "react-router";
+import { styled } from "@mui/material/styles";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import Chip from "@mui/material/Chip";
+import { uploadImage } from "../utils/api_image";
+import { API_URL } from "../utils/constants";
+
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  height: 1,
+  overflow: "hidden",
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  whiteSpace: "nowrap",
+  width: 1,
+});
 
 const ProductEdit = () => {
   const { id } = useParams(); // retrieve the id from the URL
@@ -21,23 +38,27 @@ const ProductEdit = () => {
   const [price, setPrice] = useState(0);
   const [category, setCategory] = useState("");
   const [error, setError] = useState(null);
+  const [image, setImage] = useState(null);
 
+  // load the product data from the backend API, and assign it the state
   useEffect(() => {
     getProduct(id)
       .then((productData) => {
         // check if productData is empty or not
         if (productData) {
-          // update the state with product data
+          // update the state with the productData
           setName(productData ? productData.name : "");
           setDescription(productData ? productData.description : "");
           setPrice(productData ? productData.price : 0);
-          setName(productData ? productData.name : "");
+          setCategory(productData ? productData.category : "");
+          setImage(productData ? productData.image : null);
         } else {
-          // if not available,set error message
-          setError("Product not found ");
+          // if not available, set error message
+          setError("Product not found");
         }
       })
       .catch((error) => {
+        // catch the API error
         setError("Product not found");
       });
   }, [id]);
@@ -49,11 +70,11 @@ const ProductEdit = () => {
     }
 
     try {
-      // 2. trigger the API to create new product
-      await updateProduct(id, name, description, price, category);
+      // 2. trigger the API to update product
+      await updateProduct(id, name, description, price, category, image);
 
       // 3. if successful, redirect user back to home page and show success message
-      toast.success("Product has been update!");
+      toast.success("Product has been updated");
       navigate("/");
     } catch (error) {
       toast.error(error.message);
@@ -136,6 +157,41 @@ const ProductEdit = () => {
               <MenuItem value={"Subscriptions"}>Subscriptions</MenuItem>
             </Select>
           </FormControl>
+        </Box>
+        <Box mb={2} sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {image ? (
+            <>
+              <img src={API_URL + image} width="200px" />
+              <Button
+                color="info"
+                variant="contained"
+                size="small"
+                onClick={() => setImage(null)}
+              >
+                Remove
+              </Button>
+            </>
+          ) : (
+            <Button
+              component="label"
+              role={undefined}
+              variant="contained"
+              tabIndex={-1}
+              startIcon={<CloudUploadIcon />}
+            >
+              Upload image
+              <VisuallyHiddenInput
+                type="file"
+                onChange={async (event) => {
+                  const data = await uploadImage(event.target.files[0]);
+                  // { image_url: "uploads/image.jpg" }
+                  // set the image url into state
+                  setImage(data.image_url);
+                }}
+                accept="image/*"
+              />
+            </Button>
+          )}
         </Box>
         <Box mb={2}>
           <Button

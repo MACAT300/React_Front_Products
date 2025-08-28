@@ -7,6 +7,7 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderPage from "./pages/OrderPage";
 import "react-toastify/dist/ReactToastify.css";
+import CategoriesPage from "./pages/CategoriesPage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/orders" element={<OrderPage />} />
+        <Route path="/categories" element={<CategoriesPage />} />
       </Routes>
       <Toaster />
     </BrowserRouter>

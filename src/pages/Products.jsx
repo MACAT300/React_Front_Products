@@ -10,6 +10,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
+import CardMedia from "@mui/material/CardMedia";
 import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
@@ -18,6 +19,7 @@ import { getProducts, deleteProduct } from "../utils/api_products";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { addToCart } from "../utils/cart";
+import { API_URL } from "../utils/constants";
 
 const Products = () => {
   // to store the data from /products
@@ -117,6 +119,16 @@ const Products = () => {
           {products.map((product) => (
             <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4 }} key={product._id}>
               <Card>
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={
+                    API_URL +
+                    (product.image
+                      ? product.image
+                      : "uploads/default_image.png")
+                  }
+                />
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h5" sx={{ minHeight: "64px" }}>
                     {product.name}

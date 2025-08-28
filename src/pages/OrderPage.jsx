@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Container from "@mui/material/Container";
-import { getOrders, deleteOrder, updateOrder } from "../utils/api_orders";
-import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
-import TextField from "@mui/material/TextField";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -13,14 +10,19 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
-import Select from "@mui/material/Select";
+import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
-import { FormControl, InputLabel } from "@mui/material";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import { getOrders, updateOrder, deleteOrder } from "../utils/api_orders";
+import { toast } from "sonner";
 import Swal from "sweetalert2";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const OrdersPage = () => {
   // store orders data from API
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // call the API
   useEffect(() => {
@@ -34,33 +36,36 @@ const OrdersPage = () => {
       });
   }, []); // call only once when the page load
 
-  const getTotal = (order) => {
-    if (Array.isArray(order?.products)) {
-      return order.products.reduce(
-        (sum, p) => sum + (p.price || 0) * (p.quantity || 1),
-        0
-      );
-    }
-    return 0;
+  const handleStatusUpdate = async (id, newStatus) => {
+    setLoading(true);
+    await updateOrder(id, newStatus);
+    const updatedOrders = await getOrders();
+    setOrders(updatedOrders);
+    toast.info("Status has been updated");
+    setLoading(false);
   };
 
-  const handleUpdate = async (_id, status) => {
-    try {
-      await updateOrder(_id, status);
-      toast.success("Product has been updated");
-    } catch (error) {
-      toast.error(error.message);
-      console.log(error.message);
-    }
-  };
-
-  const handleDelete = async (_id) => {
-    await deleteOrder(_id);
-
-    const updateOrders = await getOrders(_id);
-    setOrders(updateOrders);
-
-    toast.success("Product has been deleted");
+  const handleOrderDelete = async (id) => {
+    Swal.fire({
+      title: "Are you sure you want to delete this order?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    }).then(async (result) => {
+      // once user confirm, then we delete the product
+      if (result.isConfirmed) {
+        await deleteOrder(id);
+        // method #1: get new orders data
+        const updatedOrders = await getOrders();
+        setOrders(updatedOrders);
+        // method #2:
+        // setOrders(orders.filter((i) => i._id !== id));
+        toast.info("Order has been deleted");
+      }
+    });
   };
 
   return (
@@ -71,12 +76,12 @@ const OrdersPage = () => {
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>
               <TableRow>
-                <TableCell>Customers</TableCell>
-                <TableCell align="right">Products</TableCell>
-                <TableCell align="right">Total Amount</TableCell>
-                <TableCell align="right">Status</TableCell>
-                <TableCell align="right">Payment Date</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Products</TableCell>
+                <TableCell>Total Price</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Payment Date</TableCell>
+                <TableCell align="right">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -88,75 +93,59 @@ const OrdersPage = () => {
                   >
                     <TableCell component="th" scope="row">
                       {order.customerName}
-                      <br />({order.customerEmail})
+                      <div>({order.customerEmail})</div>
                     </TableCell>
                     <TableCell>
-                      {Array.isArray(order?.products) && order.products.length
-                        ? order.products.map((p) => (
-                            <Box key={p._id || p.name} sx={{ mb: 0.5 }}>
-                              {p.name}
-                            </Box>
-                          ))
-                        : "—"}
+                      {order.products.map((product) => (
+                        <div>{product.name}</div>
+                      ))}
                     </TableCell>
+                    <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
+                    <TableCell>
+                      {loading ? (
+                        <CircularProgress color="inherit" />
+                      ) : (
+                        <FormControl fullWidth>
+                          <InputLabel>Status</InputLabel>
+                          <Select
+                            value={order.status}
+                            label="Status"
+                            disabled={order.status === "pending"}
+                            onChange={(event) => {
+                              handleStatusUpdate(order._id, event.target.value);
+                            }}
+                          >
+                            <MenuItem value={"pending"} disabled>
+                              Pending
+                            </MenuItem>
+                            <MenuItem value={"paid"}>Paid</MenuItem>
+                            <MenuItem value={"failed"}>Failed</MenuItem>
+                            <MenuItem value={"completed"}>Completed</MenuItem>
+                          </Select>
+                        </FormControl>
+                      )}
+                    </TableCell>
+                    <TableCell>{order.paid_at}</TableCell>
                     <TableCell align="right">
-                      {" "}
-                      {getTotal(order).toFixed(2)}
-                    </TableCell>
-
-                    <TableCell>
-                      <FormControl fullWidth>
-                        <InputLabel id="demo-simple-select-label">
-                          Status
-                        </InputLabel>
-                        <Select
-                          labelId="demo-simple-select-label"
-                          id="demo-simple-select"
-                          defaultValue={order.status}
-                          label="Status"
-                          onChange={(event) =>
-                            handleUpdate(order._id, event.target.value)
-                          }
-                          disabled={order.status === "pending" ? true : false}
-                        >
-                          <MenuItem value={"pending"} disabled>
-                            Pending
-                          </MenuItem>
-                          <MenuItem value={"paid"}>Paid</MenuItem>
-                          <MenuItem value={"failed"}>Failed</MenuItem>
-                          <MenuItem value={"completed"}>Completed</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </TableCell>
-                    <TableCell align="right">{order.paid_at}</TableCell>
-                    <TableCell>
                       {order.status === "pending" ? (
                         <Button
-                          variant="outlined"
+                          variant="contained"
                           color="error"
                           onClick={() => {
-                            handleDelete(order._id);
+                            handleOrderDelete(order._id);
                           }}
                         >
                           Delete
                         </Button>
-                      ) : (
-                        ""
-                      )}
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6}>
-                    No product has been added to order yet
-                  </TableCell>
+                  <TableCell colSpan={5}>No order found.</TableCell>
                 </TableRow>
               )}
-              <TableRow>
-                <TableCell colSpan={3}></TableCell>
-                <TableCell align="right"></TableCell>
-              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>
