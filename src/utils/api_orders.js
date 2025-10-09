@@ -2,8 +2,12 @@ import axios from "axios";
 
 import { API_URL } from "./constants";
 
-export const getOrders = async () => {
-  const response = await axios.get(API_URL + "orders");
+export const getOrders = async (token) => {
+  const response = await axios.get(API_URL + "orders", {
+    headers: {
+      Authorization: "Bearer " + token,
+    },
+  });
   return response.data;
 };
 
@@ -23,10 +27,18 @@ export const createOrder = async (
   return response.data;
 };
 
-export const updateOrder = async (id, status) => {
-  const response = await axios.put(API_URL + "orders/" + id, {
-    status,
-  });
+export const updateOrder = async (id, status, token) => {
+  const response = await axios.put(
+    API_URL + "orders/" + id,
+    {
+      status,
+    },
+    {
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    }
+  );
   return response.data;
 };
 

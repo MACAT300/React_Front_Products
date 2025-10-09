@@ -19,20 +19,30 @@ import { getProducts, deleteProduct } from "../utils/api_products";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { addToCart } from "../utils/cart";
+import { getCategories } from "../utils/api_categories";
 import { API_URL } from "../utils/constants";
+import { useCookies } from "react-cookie";
 
 const Products = () => {
+  const [cookies] = useCookies(["currentuser"]);
+  const { currentuser = {} } = cookies; // assign empty object to avoid error if user not logged in
+  const { token = "" } = currentuser;
   // to store the data from /products
   const [products, setProducts] = useState([]);
   // to track which page the user is in
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState("all");
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     getProducts(category, page).then((data) => {
       setProducts(data);
     });
   }, [category, page]);
+
+  useEffect(() => {
+    getCategories().then((data) => setCategories(data));
+  }, []);
 
   const handleProductDelete = async (id) => {
     Swal.fire({
@@ -47,7 +57,7 @@ const Products = () => {
       // once user confirm, then we delete the product
       if (result.isConfirmed) {
         // delete product at the backend
-        await deleteProduct(id);
+        await deleteProduct(id, token);
 
         // method #1: remove from the state manually
         // delete product from the state
@@ -108,10 +118,9 @@ const Products = () => {
               }}
             >
               <MenuItem value="all">All</MenuItem>
-              <MenuItem value={"Consoles"}>Consoles</MenuItem>
-              <MenuItem value={"Games"}>Games</MenuItem>
-              <MenuItem value={"Accessories"}>Accessories</MenuItem>
-              <MenuItem value={"Subscriptions"}>Subscriptions</MenuItem>
+              {categories.map((cat) => (
+                <MenuItem value={cat._id}>{cat.label}</MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Box>
@@ -141,7 +150,10 @@ const Products = () => {
                     }}
                   >
                     <Chip label={"$" + product.price} color="success" />
-                    <Chip label={product.category} color="primary" />
+                    <Chip
+                      label={product.category ? product.category.label : ""}
+                      color="primary"
+                    />
                   </Box>
                 </CardContent>
                 <CardActions sx={{ display: "block", px: 3, pb: 3 }}>

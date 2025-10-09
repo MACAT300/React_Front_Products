@@ -19,29 +19,62 @@ export async function getProduct(id) {
   return response.data;
 }
 
-export async function addProduct(name, description, price, category, image) {
-  const response = await axios.post(API_URL + "products", {
-    name: name,
-    description: description,
-    price: price,
-    category,
-    image,
-  });
+export async function addProduct(
+  name,
+  description,
+  price,
+  category,
+  image,
+  token
+) {
+  const response = await axios.post(
+    API_URL + "products",
+    {
+      name: name,
+      description: description,
+      price: price,
+      category,
+      image,
+    },
+    {
+      headers: {
+        Authorization: "Bearer " + token,
+        // Bearer jdke0fje00ifi0o...
+      },
+    }
+  );
   return response.data;
 }
 
-export async function updateProduct(id, name, description, price, category) {
+export async function updateProduct(
+  id,
+  name,
+  description,
+  price,
+  category,
+  image,
+  token
+) {
   // PUT http://localhost:5123/products/68a56c5c2a01f899adb75255
-  const response = await axios.put(API_URL + "products/" + id, {
-    name: name,
-    description: description,
-    price: price,
-    category,
-  });
+  const response = await axios.put(
+    API_URL + "products/" + id,
+    {
+      name: name,
+      description: description,
+      price: price,
+      category,
+      image,
+    },
+    {
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    }
+  );
   return response.data;
 }
 
-export async function deleteProduct(id) {
+export async function deleteProduct(id, token) {
   // DELETE http://localhost:5123/products/68a56c5c2a01f899adb75255
   const response = await axios.delete(API_URL + "products/" + id);
   return response.data;
