@@ -1,112 +1,154 @@
-import { Link } from "react-router";
-import { Button } from "@mui/material";
 import Header from "../components/Header";
-import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
+import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
-import Grid from "@mui/material/Grid";
-import Card from "@mui/material/Card";
-import CardMedia from "@mui/material/CardMedia";
-import CardActions from "@mui/material/CardActions";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
 import { useState, useEffect } from "react";
-import { getProducts, deleteProduct } from "../utils/api_products";
-import Swal from "sweetalert2";
+import { updateProduct, getProduct } from "../utils/api_products";
 import { toast } from "sonner";
-import { addToCart } from "../utils/cart";
-import { getCategories } from "../utils/api_categories";
+import { useNavigate, useParams, Link } from "react-router";
+import { styled } from "@mui/material/styles";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import Chip from "@mui/material/Chip";
+import { uploadImage } from "../utils/api_image";
 import { API_URL } from "../utils/constants";
+import { getCategories } from "../utils/api_categories";
 import { useCookies } from "react-cookie";
 
-const Products = () => {
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  height: 1,
+  overflow: "hidden",
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  whiteSpace: "nowrap",
+  width: 1,
+});
+
+const ProductEdit = () => {
+  const { id } = useParams(); // retrieve the id from the URL
+  const navigate = useNavigate();
   const [cookies] = useCookies(["currentuser"]);
   const { currentuser = {} } = cookies; // assign empty object to avoid error if user not logged in
   const { token = "" } = currentuser;
-  // to store the data from /products
-  const [products, setProducts] = useState([]);
-  // to track which page the user is in
-  const [page, setPage] = useState(1);
-  const [category, setCategory] = useState("all");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState(0);
+  const [category, setCategory] = useState("");
+  const [error, setError] = useState(null);
+  const [image, setImage] = useState(null);
   const [categories, setCategories] = useState([]);
 
+  // load the product data from the backend API, and assign it the state
   useEffect(() => {
-    getProducts(category, page).then((data) => {
-      setProducts(data);
-    });
-  }, [category, page]);
+    getProduct(id)
+      .then((productData) => {
+        // check if productData is empty or not
+        if (productData) {
+          // update the state with the productData
+          setName(productData ? productData.name : "");
+          setDescription(productData ? productData.description : "");
+          setPrice(productData ? productData.price : 0);
+          setCategory(productData ? productData.category : "");
+          setImage(productData ? productData.image : null);
+        } else {
+          // if not available, set error message
+          setError("Product not found");
+        }
+      })
+      .catch((error) => {
+        // catch the API error
+        setError("Product not found");
+      });
+  }, [id]);
 
   useEffect(() => {
     getCategories().then((data) => setCategories(data));
   }, []);
 
-  const handleProductDelete = async (id) => {
-    Swal.fire({
-      title: "Are you sure you want to delete this product?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-    }).then(async (result) => {
-      // once user confirm, then we delete the product
-      if (result.isConfirmed) {
-        // delete product at the backend
-        await deleteProduct(id, token);
+  const handleFormSubmit = async (event) => {
+    // 1. check for error
+    if (!name || !price || !category) {
+      toast.error("Please fill up the required fields");
+    }
 
-        // method #1: remove from the state manually
-        // delete product from the state
-        // setProducts(products.filter((p) => p._id !== id));
+    try {
+      // 2. trigger the API to update product
+      await updateProduct(id, name, description, price, category, image, token);
 
-        // method #2: get the new data from the backend
-        const updatedProducts = await getProducts(category, page);
-        setProducts(updatedProducts);
-
-        toast.success("Product has been deleted");
-      }
-    });
+      // 3. if successful, redirect user back to home page and show success message
+      toast.success("Product has been updated");
+      navigate("/");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
+
+  // if error, return the error
+  if (error) {
+    return (
+      <>
+        <Header />
+        <Container maxWidth="sm" sx={{ textAlign: "center" }}>
+          <Typography variant="h3" align="center" mb={2} color="error">
+            {error}
+          </Typography>
+          <Button variant="contained" color="primary" component={Link} to="/">
+            Go back to Home
+          </Button>
+        </Container>
+      </>
+    );
+  }
 
   return (
     <>
-      <Header current="home" />
-      <Container>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: "700",
-            }}
-          >
-            Products
-          </Typography>
-          {currentuser.role === "admin" ? (
-            <Button
-              component={Link}
-              to="/products/new"
-              variant="contained"
-              color="success"
-            >
-              Add New
-            </Button>
-          ) : null}
+      <Header />
+      <Container maxWidth="sm">
+        <Typography variant="h3" align="center" mb={2}>
+          Edit Product
+        </Typography>
+        <Box mb={2}>
+          <TextField
+            label="Name"
+            fullWidth
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </Box>
-        <Box
-          sx={{
-            paddingBottom: "10px",
-          }}
-        >
-          <FormControl sx={{ minWidth: "250px" }}>
+        <Box mb={2}>
+          <TextField
+            label="Description"
+            fullWidth
+            value={description}
+            multiline
+            rows={3}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Box>
+        <Box mb={2}>
+          <TextField
+            type="number"
+            label="Price"
+            fullWidth
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+        </Box>
+        <Box mb={2}>
+          <FormControl sx={{ width: "100%" }}>
             <InputLabel
               id="demo-simple-select-label"
               sx={{ backgroundColor: "white", paddingRight: "5px" }}
             >
-              Filter By Category
+              Category
             </InputLabel>
             <Select
               labelId="demo-simple-select-label"
@@ -115,119 +157,57 @@ const Products = () => {
               label="Genre"
               onChange={(event) => {
                 setCategory(event.target.value);
-                // reset the page back to 1
-                setPage(1);
               }}
             >
-              <MenuItem value="all">All</MenuItem>
               {categories.map((cat) => (
                 <MenuItem value={cat._id}>{cat.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
         </Box>
-        <Grid container spacing={4}>
-          {products.map((product) => (
-            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4 }} key={product._id}>
-              <Card>
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={
-                    API_URL +
-                    (product.image
-                      ? product.image
-                      : "uploads/default_image.png")
-                  }
-                />
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h5" sx={{ minHeight: "64px" }}>
-                    {product.name}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      pt: 2,
-                    }}
-                  >
-                    <Chip label={"$" + product.price} color="success" />
-                    <Chip
-                      label={product.category ? product.category.label : ""}
-                      color="primary"
-                    />
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ display: "block", px: 3, pb: 3 }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={() => addToCart(product)}
-                  >
-                    Add To Cart
-                  </Button>
-                  {currentuser.role === "admin" ? (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        pt: 2,
-                        marginLeft: "0px !important",
-                      }}
-                    >
-                      <Button
-                        component={Link}
-                        to={`/products/${product._id}/edit`}
-                        variant="contained"
-                        color="info"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        onClick={() => {
-                          handleProductDelete(product._id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </Box>
-                  ) : null}
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-        {products.length === 0 ? (
-          <Typography variant="h5" align="center" py={3}>
-            No more products found.
-          </Typography>
-        ) : null}
-        <Box
-          sx={{
-            pt: 2,
-            pb: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <Box mb={2} sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {image ? (
+            <>
+              <img src={API_URL + image} width="200px" />
+              <Button
+                color="info"
+                variant="contained"
+                size="small"
+                onClick={() => setImage(null)}
+              >
+                Remove
+              </Button>
+            </>
+          ) : (
+            <Button
+              component="label"
+              role={undefined}
+              variant="contained"
+              tabIndex={-1}
+              startIcon={<CloudUploadIcon />}
+            >
+              Upload image
+              <VisuallyHiddenInput
+                type="file"
+                onChange={async (event) => {
+                  const data = await uploadImage(event.target.files[0]);
+                  // { image_url: "uploads/image.jpg" }
+                  // set the image url into state
+                  setImage(data.image_url);
+                }}
+                accept="image/*"
+              />
+            </Button>
+          )}
+        </Box>
+        <Box mb={2}>
           <Button
             variant="contained"
-            disabled={page === 1 ? true : false} // the button will be disabled if the page is 1
-            onClick={() => setPage(page - 1)}
+            color="primary"
+            fullWidth
+            onClick={handleFormSubmit}
           >
-            Previous
-          </Button>
-          <span>Page: {page}</span>
-          <Button
-            variant="contained"
-            disabled={products.length === 0 ? true : false} // the button will be disabled if no more products
-            onClick={() => setPage(page + 1)}
-          >
-            Next
+            Update
           </Button>
         </Box>
       </Container>
@@ -235,4 +215,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default ProductEdit;
